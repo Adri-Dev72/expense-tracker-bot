@@ -9,7 +9,7 @@ def connect():
 
 
 def setup_database():
-    """Creates the expenses table (the list) if it doesn't exist yet."""
+    """Creates the two lists (tables) if they don't exist yet."""
     db = connect()
     db.execute("""
         CREATE TABLE IF NOT EXISTS expenses (
@@ -21,9 +21,44 @@ def setup_database():
             created_at TEXT NOT NULL
         )
     """)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL
+        )
+    """)
     db.commit()
     db.close()
 
+
+# ---------- Categories ----------
+
+def get_categories(user_id):
+    """Returns this person's category names as a list (empty if no setup yet)."""
+    db = connect()
+    rows = db.execute(
+        "SELECT name FROM categories WHERE user_id = ? ORDER BY id",
+        (user_id,),
+    ).fetchall()
+    db.close()
+    return [row[0] for row in rows]
+
+
+def save_categories(user_id, names):
+    """Replaces this person's category list with the new one."""
+    db = connect()
+    db.execute("DELETE FROM categories WHERE user_id = ?", (user_id,))
+    for name in names:
+        db.execute(
+            "INSERT INTO categories (user_id, name) VALUES (?, ?)",
+            (user_id, name),
+        )
+    db.commit()
+    db.close()
+
+
+# ---------- Expenses ----------
 
 def add_expense(user_id, amount, merchant, category):
     """Saves one expense. user_id keeps each person's data separate."""
